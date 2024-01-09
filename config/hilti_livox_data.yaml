@@ -1,11 +1,11 @@
 # passed:
     # Basement_1.bag
-    # Basement_4.bag
     # Campus_2.bag
     # Construction_Site_2.bag
-    # IC_Office_1.bag
     # uzh_tracking_area_run2.bag
 # failed:
+    # Basement_4.bag
+    # IC_Office_1.bag
     # LAB_Survey_2.bag
 
 common:
