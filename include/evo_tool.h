@@ -36,6 +36,7 @@ public:
     {
         pose_trajectory = fopen(trajectory_path.c_str(), "w");
         fprintf(pose_trajectory, "# target trajectory\n# timestamp tx ty tz qx qy qz qw\n");
+        fflush(pose_trajectory);
     }
     ~evo_tool()
     {
