@@ -750,7 +750,7 @@ void h_share_model(state_ikfom &s, esekfom::dyn_share_datastruct<double> &ekfom_
     solve_time += omp_get_wtime() - solve_start_;
 }
 
-bool foo()
+bool run_fastlio2()
 {
     p_imu->Process(Measures, kf, feats_undistort);
     state_point = kf.get_x();
@@ -947,7 +947,7 @@ int main(int argc, char** argv)
             match_time = 0;
             solve_time = 0;
 
-            if (!foo())
+            if (!run_fastlio2())
             {
                 continue;
             }
