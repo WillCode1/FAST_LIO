@@ -750,6 +750,65 @@ void h_share_model(state_ikfom &s, esekfom::dyn_share_datastruct<double> &ekfom_
     solve_time += omp_get_wtime() - solve_start_;
 }
 
+void load_fastlio2_param()
+{
+    ros::NodeHandle nh;
+
+    nh.param<bool>("publish/path_en",path_en, true);
+    nh.param<bool>("publish/scan_publish_en",scan_pub_en, true);
+    nh.param<bool>("publish/dense_publish_en",dense_pub_en, true);
+    nh.param<bool>("publish/scan_bodyframe_pub_en",scan_body_pub_en, true);
+    nh.param<int>("max_iteration",NUM_MAX_ITERATIONS,4);
+    nh.param<string>("map_file_path",map_file_path,"");
+    nh.param<string>("common/lidar_topic",lid_topic,"/livox/lidar");
+    nh.param<string>("common/imu_topic", imu_topic,"/livox/imu");
+    nh.param<bool>("common/time_sync_en", time_sync_en, false);
+    nh.param<double>("common/time_offset_lidar_to_imu", time_diff_lidar_to_imu, 0.0);
+    nh.param<double>("filter_size_corner",filter_size_corner_min,0.5);
+    nh.param<double>("filter_size_surf",filter_size_surf_min,0.5);
+    nh.param<double>("filter_size_map",filter_size_map_min,0.5);
+    nh.param<double>("cube_side_length",cube_len,200);
+    nh.param<float>("mapping/det_range",DET_RANGE,300.f);
+    nh.param<double>("mapping/fov_degree",fov_deg,180);
+    nh.param<double>("mapping/gyr_cov",gyr_cov,0.1);
+    nh.param<double>("mapping/acc_cov",acc_cov,0.1);
+    nh.param<double>("mapping/b_gyr_cov",b_gyr_cov,0.0001);
+    nh.param<double>("mapping/b_acc_cov",b_acc_cov,0.0001);
+    nh.param<double>("preprocess/blind", p_pre->blind, 0.01);
+    nh.param<int>("preprocess/lidar_type", p_pre->lidar_type, AVIA);
+    nh.param<int>("preprocess/scan_line", p_pre->N_SCANS, 16);
+    nh.param<int>("preprocess/timestamp_unit", p_pre->time_unit, US);
+    nh.param<int>("preprocess/scan_rate", p_pre->SCAN_RATE, 10);
+    nh.param<int>("point_filter_num", p_pre->point_filter_num, 2);
+    nh.param<bool>("feature_extract_enable", p_pre->feature_enabled, false);
+    nh.param<bool>("runtime_pos_log_enable", runtime_pos_log, 0);
+    nh.param<bool>("mapping/extrinsic_est_en", extrinsic_est_en, true);
+    nh.param<bool>("pcd_save/pcd_save_en", pcd_save_en, false);
+    nh.param<int>("pcd_save/interval", pcd_save_interval, -1);
+    nh.param<vector<double>>("mapping/extrinsic_T", extrinT, vector<double>());
+    nh.param<vector<double>>("mapping/extrinsic_R", extrinR, vector<double>());
+    cout<<"p_pre->lidar_type "<<p_pre->lidar_type<<endl;
+
+    memset(point_selected_surf, true, sizeof(point_selected_surf));
+    memset(res_last, -1000.0f, sizeof(res_last));
+    downSizeFilterSurf.setLeafSize(filter_size_surf_min, filter_size_surf_min, filter_size_surf_min);
+    downSizeFilterMap.setLeafSize(filter_size_map_min, filter_size_map_min, filter_size_map_min);
+    // memset(point_selected_surf, true, sizeof(point_selected_surf));
+    // memset(res_last, -1000.0f, sizeof(res_last));
+
+    Lidar_T_wrt_IMU<<VEC_FROM_ARRAY(extrinT);
+    Lidar_R_wrt_IMU<<MAT_FROM_ARRAY(extrinR);
+    p_imu->set_extrinsic(Lidar_T_wrt_IMU, Lidar_R_wrt_IMU);
+    p_imu->set_gyr_cov(V3D(gyr_cov, gyr_cov, gyr_cov));
+    p_imu->set_acc_cov(V3D(acc_cov, acc_cov, acc_cov));
+    p_imu->set_gyr_bias_cov(V3D(b_gyr_cov, b_gyr_cov, b_gyr_cov));
+    p_imu->set_acc_bias_cov(V3D(b_acc_cov, b_acc_cov, b_acc_cov));
+
+    double epsi[23] = {0.001};
+    fill(epsi, epsi+23, 0.001);
+    kf.init_dyn_share(get_f, df_dx, df_dw, h_share_model, NUM_MAX_ITERATIONS, epsi);
+}
+
 bool run_fastlio2()
 {
     p_imu->Process(Measures, kf, feats_undistort);
@@ -758,7 +817,7 @@ bool run_fastlio2()
 
     if (feats_undistort->empty() || (feats_undistort == NULL))
     {
-        ROS_WARN("No point, skip this scan!\n");
+        ROS_WARN("FAST-LIO not ready!\n");
         return false;
     }
 
@@ -803,7 +862,7 @@ bool run_fastlio2()
         featsFromMap->points = ikdtree.PCL_Storage;
     }
 
-    pointSearchInd_surf.resize(feats_down_size);
+    // pointSearchInd_surf.resize(feats_down_size);
     Nearest_Points.resize(feats_down_size);
 
     /*** iterated state estimation ***/
@@ -814,6 +873,9 @@ bool run_fastlio2()
     geoQuat.y = state_point.rot.coeffs()[1];
     geoQuat.z = state_point.rot.coeffs()[2];
     geoQuat.w = state_point.rot.coeffs()[3];
+
+    /*** add the feature points to map kdtree ***/
+    map_incremental();
     return true;
 }
 
@@ -822,40 +884,7 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "laserMapping");
     ros::NodeHandle nh;
 
-    nh.param<bool>("publish/path_en",path_en, true);
-    nh.param<bool>("publish/scan_publish_en",scan_pub_en, true);
-    nh.param<bool>("publish/dense_publish_en",dense_pub_en, true);
-    nh.param<bool>("publish/scan_bodyframe_pub_en",scan_body_pub_en, true);
-    nh.param<int>("max_iteration",NUM_MAX_ITERATIONS,4);
-    nh.param<string>("map_file_path",map_file_path,"");
-    nh.param<string>("common/lidar_topic",lid_topic,"/livox/lidar");
-    nh.param<string>("common/imu_topic", imu_topic,"/livox/imu");
-    nh.param<bool>("common/time_sync_en", time_sync_en, false);
-    nh.param<double>("common/time_offset_lidar_to_imu", time_diff_lidar_to_imu, 0.0);
-    nh.param<double>("filter_size_corner",filter_size_corner_min,0.5);
-    nh.param<double>("filter_size_surf",filter_size_surf_min,0.5);
-    nh.param<double>("filter_size_map",filter_size_map_min,0.5);
-    nh.param<double>("cube_side_length",cube_len,200);
-    nh.param<float>("mapping/det_range",DET_RANGE,300.f);
-    nh.param<double>("mapping/fov_degree",fov_deg,180);
-    nh.param<double>("mapping/gyr_cov",gyr_cov,0.1);
-    nh.param<double>("mapping/acc_cov",acc_cov,0.1);
-    nh.param<double>("mapping/b_gyr_cov",b_gyr_cov,0.0001);
-    nh.param<double>("mapping/b_acc_cov",b_acc_cov,0.0001);
-    nh.param<double>("preprocess/blind", p_pre->blind, 0.01);
-    nh.param<int>("preprocess/lidar_type", p_pre->lidar_type, AVIA);
-    nh.param<int>("preprocess/scan_line", p_pre->N_SCANS, 16);
-    nh.param<int>("preprocess/timestamp_unit", p_pre->time_unit, US);
-    nh.param<int>("preprocess/scan_rate", p_pre->SCAN_RATE, 10);
-    nh.param<int>("point_filter_num", p_pre->point_filter_num, 2);
-    nh.param<bool>("feature_extract_enable", p_pre->feature_enabled, false);
-    nh.param<bool>("runtime_pos_log_enable", runtime_pos_log, 0);
-    nh.param<bool>("mapping/extrinsic_est_en", extrinsic_est_en, true);
-    nh.param<bool>("pcd_save/pcd_save_en", pcd_save_en, false);
-    nh.param<int>("pcd_save/interval", pcd_save_interval, -1);
-    nh.param<vector<double>>("mapping/extrinsic_T", extrinT, vector<double>());
-    nh.param<vector<double>>("mapping/extrinsic_R", extrinR, vector<double>());
-    cout<<"p_pre->lidar_type "<<p_pre->lidar_type<<endl;
+    load_fastlio2_param();
     
     path.header.stamp    = ros::Time::now();
     path.header.frame_id ="camera_init";
@@ -869,25 +898,6 @@ int main(int argc, char** argv)
     HALF_FOV_COS = cos((FOV_DEG) * 0.5 * PI_M / 180.0);
 
     _featsArray.reset(new PointCloudXYZI());
-
-    memset(point_selected_surf, true, sizeof(point_selected_surf));
-    memset(res_last, -1000.0f, sizeof(res_last));
-    downSizeFilterSurf.setLeafSize(filter_size_surf_min, filter_size_surf_min, filter_size_surf_min);
-    downSizeFilterMap.setLeafSize(filter_size_map_min, filter_size_map_min, filter_size_map_min);
-    memset(point_selected_surf, true, sizeof(point_selected_surf));
-    memset(res_last, -1000.0f, sizeof(res_last));
-
-    Lidar_T_wrt_IMU<<VEC_FROM_ARRAY(extrinT);
-    Lidar_R_wrt_IMU<<MAT_FROM_ARRAY(extrinR);
-    p_imu->set_extrinsic(Lidar_T_wrt_IMU, Lidar_R_wrt_IMU);
-    p_imu->set_gyr_cov(V3D(gyr_cov, gyr_cov, gyr_cov));
-    p_imu->set_acc_cov(V3D(acc_cov, acc_cov, acc_cov));
-    p_imu->set_gyr_bias_cov(V3D(b_gyr_cov, b_gyr_cov, b_gyr_cov));
-    p_imu->set_acc_bias_cov(V3D(b_acc_cov, b_acc_cov, b_acc_cov));
-
-    double epsi[23] = {0.001};
-    fill(epsi, epsi+23, 0.001);
-    kf.init_dyn_share(get_f, df_dx, df_dw, h_share_model, NUM_MAX_ITERATIONS, epsi);
 
     /*** debug record ***/
     FILE *fp;
@@ -957,9 +967,6 @@ int main(int argc, char** argv)
 #ifdef EVO
             et.save_trajectory(state_point.pos, state_point.rot, lidar_end_time);
 #endif
-
-            /*** add the feature points to map kdtree ***/
-            map_incremental();
             
             /******* Publish points *******/
             if (path_en)                         publish_path(pubPath);
