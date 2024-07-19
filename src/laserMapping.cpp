@@ -61,6 +61,8 @@
 #include <ikd-Tree/ikd_Tree.h>
 #include "evo_tool.h"
 #define EVO
+#include "slam_interfaces/BackendOpt.h"
+#define PGO
 
 #define INIT_TIME           (0.1)
 #define LASER_POINT_COV     (0.001)
@@ -839,6 +841,9 @@ int main(int argc, char** argv)
 #ifdef EVO
     evo_tool et(DEBUG_FILE_DIR("pose_trajectory.txt"));
 #endif
+#ifdef PGO
+    ros::ServiceClient client = nh.serviceClient<slam_interfaces::BackendOpt>("/pgo_service");
+#endif
 
     /*** ROS subscribe initialization ***/
     ros::Subscriber sub_pcl = p_pre->lidar_type == AVIA ? \
@@ -971,6 +976,23 @@ int main(int argc, char** argv)
             publish_odometry(pubOdomAftMapped);
 #ifdef EVO
             et.save_trajectory(state_point.pos, state_point.rot, lidar_end_time);
+#endif
+
+#ifdef PGO
+            slam_interfaces::BackendOpt pgo_srv;
+            pcl::fromROSMsg(pgo_srv.request.cloud_undistort, *feats_undistort);
+            // PointXYZIRPYT this_pose6d;
+            // if (!use_imu_as_input)
+            //     set_current_pose(this_pose6d, lidar_end_time, kf_output.x_);
+            // else
+            //     set_current_pose(this_pose6d, lidar_end_time, kf_input.x_);
+            // PointCloudType::Ptr submap_fix(new PointCloudType());
+            // backend.run(this_pose6d, feats_undistort, submap_fix);
+            // if (submap_fix->size() > 0)
+            // {
+            //     this_pose6d;
+            //     submap_fix;
+            // }
 #endif
 
             /*** add the feature points to map kdtree ***/
