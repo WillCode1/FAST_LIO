@@ -59,6 +59,8 @@
 #include <livox_ros_driver/CustomMsg.h>
 #include "preprocess.h"
 #include <ikd-Tree/ikd_Tree.h>
+#include "evo_tool.h"
+#define EVO
 
 #define INIT_TIME           (0.1)
 #define LASER_POINT_COV     (0.001)
@@ -834,6 +836,10 @@ int main(int argc, char** argv)
     else
         cout << "~~~~"<<ROOT_DIR<<" doesn't exist" << endl;
 
+#ifdef EVO
+    evo_tool et(DEBUG_FILE_DIR("pose_trajectory.txt"));
+#endif
+
     /*** ROS subscribe initialization ***/
     ros::Subscriber sub_pcl = p_pre->lidar_type == AVIA ? \
         nh.subscribe(lid_topic, 200000, livox_pcl_cbk) : \
@@ -963,6 +969,9 @@ int main(int argc, char** argv)
 
             /******* Publish odometry *******/
             publish_odometry(pubOdomAftMapped);
+#ifdef EVO
+            et.save_trajectory(state_point.pos, state_point.rot, lidar_end_time);
+#endif
 
             /*** add the feature points to map kdtree ***/
             t3 = omp_get_wtime();

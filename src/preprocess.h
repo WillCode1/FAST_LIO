@@ -34,11 +34,16 @@ struct orgtype
   }
 };
 
+// #define VEL_TIMESTAMP_TYPE float
+#define VEL_TIMESTAMP_TYPE double
+// #define VEL_TIMESTAMP_FIELD time
+#define VEL_TIMESTAMP_FIELD timestamp
+
 namespace velodyne_ros {
   struct EIGEN_ALIGN16 Point {
       PCL_ADD_POINT4D;
       float intensity;
-      float time;
+      VEL_TIMESTAMP_TYPE timestamp;
       uint16_t ring;
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   };
@@ -48,8 +53,8 @@ POINT_CLOUD_REGISTER_POINT_STRUCT(velodyne_ros::Point,
     (float, y, y)
     (float, z, z)
     (float, intensity, intensity)
-    (float, time, time)
-    (uint16_t, ring, ring)
+    (VEL_TIMESTAMP_TYPE, timestamp, timestamp)
+    (std::uint16_t, ring, ring)
 )
 
 namespace ouster_ros {

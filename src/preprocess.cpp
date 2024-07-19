@@ -297,7 +297,7 @@ void Preprocess::velodyne_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
     std::vector<float> time_last(N_SCANS, 0.0);  // last offset time
     /*****************************************************************/
 
-    if (pl_orig.points[plsize - 1].time > 0)
+    if (pl_orig.points[plsize - 1].VEL_TIMESTAMP_FIELD > 0)
     {
       given_offset_time = true;
     }
@@ -337,7 +337,7 @@ void Preprocess::velodyne_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
         added_pt.y = pl_orig.points[i].y;
         added_pt.z = pl_orig.points[i].z;
         added_pt.intensity = pl_orig.points[i].intensity;
-        added_pt.curvature = pl_orig.points[i].time * time_unit_scale; // units: ms
+        added_pt.curvature = (pl_orig.points[i].VEL_TIMESTAMP_FIELD - pl_orig.points[0].VEL_TIMESTAMP_FIELD) * time_unit_scale; // units: ms
 
         if (!given_offset_time)
         {
@@ -406,7 +406,7 @@ void Preprocess::velodyne_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
         added_pt.y = pl_orig.points[i].y;
         added_pt.z = pl_orig.points[i].z;
         added_pt.intensity = pl_orig.points[i].intensity;
-        added_pt.curvature = pl_orig.points[i].time * time_unit_scale;  // curvature unit: ms // cout<<added_pt.curvature<<endl;
+        added_pt.curvature = (pl_orig.points[i].VEL_TIMESTAMP_FIELD - pl_orig.points[0].VEL_TIMESTAMP_FIELD) * time_unit_scale;  // curvature unit: ms // cout<<added_pt.curvature<<endl;
 
         if (!given_offset_time)
         {

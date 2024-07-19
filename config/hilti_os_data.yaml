@@ -1,14 +1,23 @@
+# passed:
+    # Basement_1.bag
+    # Basement_4.bag                0.042008
+    # Campus_2.bag              
+    # Construction_Site_2.bag       0.044583
+    # LAB_Survey_2.bag              0.020220
+    # uzh_tracking_area_run2.bag    0.182291
+
 common:
     lid_topic:  "/os_cloud_node/points"
-    imu_topic:  "/os_cloud_node/imu"
+    imu_topic:  "/alphasense/imu"
     time_sync_en: false         # ONLY turn on when external time synchronization is really not possible
     time_offset_lidar_to_imu: 0.0 # Time offset between lidar and IMU calibrated by other algorithms, e.g. LI-Init (can be found in README).
                                   # This param will take effect no matter what time_sync_en is. So if the time offset is not known exactly, please set as 0.0
-    
+
 preprocess:
     lidar_type: 3                # 1 for Livox serials LiDAR, 2 for Velodyne LiDAR, 3 for ouster LiDAR, 
     scan_line: 64
-    timestamp_unit: 3                 # 0-second, 1-milisecond, 2-microsecond, 3-nanosecond.
+    scan_rate: 10                # only need to be set for velodyne, unit: Hz,
+    timestamp_unit: 3            # the unit of time/t field in the PointCloud2 rostopic: 0-second, 1-milisecond, 2-microsecond, 3-nanosecond.
     blind: 1
 
 mapping:
@@ -18,19 +27,19 @@ mapping:
     b_gyr_cov: 0.0001
     fov_degree:    180
     det_range:     200.0
-    extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic
-    extrinsic_T: [ 0.0, 0.0, 0.0 ]
-    extrinsic_R: [1, 0, 0,
-                  0, 1, 0,
-                  0, 0, 1]
+    extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic,
+    extrinsic_T: [ 0.01001966915517371, -0.006645473484212856, 0.09473042428051345 ]
+    extrinsic_R: [ 0.9999757, 0.0024556, -0.0065197,
+                   0.0024579, -0.9999969, 0.0003309,
+                   -0.0065188, -0.0003470, -0.9999787 ]
 
 publish:
-    path_en:  false
+    path_en:  true
     scan_publish_en:  true       # false: close all the point cloud output
     dense_publish_en: true       # false: low down the points number in a global-frame point clouds scan.
     scan_bodyframe_pub_en: true  # true: output the point cloud scans in IMU-body-frame
 
 pcd_save:
-    pcd_save_en: true
+    pcd_save_en: false
     interval: -1                 # how many LiDAR frames saved in each pcd file; 
                                  # -1 : all frames will be saved in ONE pcd file, may lead to memory crash when having too much frames.

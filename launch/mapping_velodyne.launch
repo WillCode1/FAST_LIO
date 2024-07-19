@@ -4,6 +4,11 @@
     <arg name="rviz" default="true" />
 
     <rosparam command="load" file="$(find fast_lio)/config/velodyne.yaml" />
+    <!-- <rosparam command="load" file="$(find fast_lio)/config/ul_data.yaml" /> -->
+    <!-- <rosparam command="load" file="$(find fast_lio)/config/hilti_os_data.yaml" /> -->
+    <!-- <rosparam command="load" file="$(find fast_lio)/config/hilti_livox_data.yaml" /> -->
+    <!-- <rosparam command="load" file="$(find fast_lio)/config/hilti2022.yaml" /> -->
+    <!-- <rosparam command="load" file="$(find fast_lio)/config/vanji720_16.yaml" /> -->
 
     <param name="feature_extract_enable" type="bool" value="0"/>
     <param name="point_filter_num" type="int" value="4"/>
