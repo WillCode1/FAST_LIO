@@ -1028,6 +1028,7 @@ int main(int argc, char** argv)
                 pose2state(pgo_srv.response.pose_fix, state_point);
                 PointCloudXYZI::Ptr submap_fix(new PointCloudXYZI());
                 pcl::fromROSMsg(pgo_srv.response.submap_fix, *submap_fix);
+                ikdtree.reconstruct(submap_fix->points);
             }
 #endif
 
