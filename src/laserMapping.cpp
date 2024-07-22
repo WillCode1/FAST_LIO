@@ -635,7 +635,7 @@ void publish_path(const ros::Publisher pubPath)
 }
 
 #ifdef PGO
-void state2pose(std::vector<float> &this_pose6d, const double &lidar_end_time, const state_ikfom &state)
+void state2pose(std::vector<float> &this_pose6d, const state_ikfom &state)
 {
     // imu pose -> lidar pose
     Eigen::Quaterniond lidar_rot;
@@ -649,7 +649,6 @@ void state2pose(std::vector<float> &this_pose6d, const double &lidar_end_time, c
     this_pose6d.emplace_back(eulerAngle(0)); // roll
     this_pose6d.emplace_back(eulerAngle(1)); // pitch
     this_pose6d.emplace_back(eulerAngle(2)); // yaw
-    this_pose6d.emplace_back(lidar_end_time);
 }
 
 void pose2state(const std::vector<float> &this_pose6d, state_ikfom &state)
@@ -1022,7 +1021,8 @@ int main(int argc, char** argv)
 #ifdef PGO
             slam_interfaces::BackendOpt pgo_srv;
             pcl::toROSMsg(*feats_undistort, pgo_srv.request.cloud_undistort);
-            state2pose(pgo_srv.request.pose, lidar_end_time, state_point);
+            state2pose(pgo_srv.request.pose, state_point);
+            pgo_srv.request.timestamp = lidar_end_time;
             if (client.call(pgo_srv) && pgo_srv.response.submap_fix.width > 0)
             {
                 pose2state(pgo_srv.response.pose_fix, state_point);
