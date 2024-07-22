@@ -61,8 +61,10 @@
 #include <ikd-Tree/ikd_Tree.h>
 #include "evo_tool.h"
 #define EVO
-#include "slam_interfaces/BackendOpt.h"
 #define PGO
+#ifdef PGO
+#include "slam_interfaces/BackendOpt.h"
+#endif
 
 #define INIT_TIME           (0.1)
 #define LASER_POINT_COV     (0.001)
@@ -95,6 +97,7 @@ double filter_size_corner_min = 0, filter_size_surf_min = 0, filter_size_map_min
 double cube_len = 0, HALF_FOV_COS = 0, FOV_DEG = 0, total_distance = 0, lidar_end_time = 0, first_lidar_time = 0.0;
 int    effct_feat_num = 0, time_log_counter = 0, scan_count = 0, publish_count = 0;
 int    iterCount = 0, feats_down_size = 0, NUM_MAX_ITERATIONS = 0, laserCloudValidNum = 0, pcd_save_interval = -1, pcd_index = 0;
+bool space_down_sample = true;
 bool   point_selected_surf[100000] = {0};
 bool   lidar_pushed, flg_first_scan = true, flg_exit = false, flg_EKF_inited;
 bool   scan_pub_en = false, dense_pub_en = false, scan_body_pub_en = false;
@@ -795,6 +798,7 @@ int main(int argc, char** argv)
     nh.param<bool>("common/time_sync_en", time_sync_en, false);
     nh.param<double>("common/time_offset_lidar_to_imu", time_diff_lidar_to_imu, 0.0);
     nh.param<double>("filter_size_corner",filter_size_corner_min,0.5);
+    nh.param<bool>("space_down_sample", space_down_sample, true);
     nh.param<double>("filter_size_surf",filter_size_surf_min,0.5);
     nh.param<double>("filter_size_map",filter_size_map_min,0.5);
     nh.param<double>("cube_side_length",cube_len,200);
@@ -933,8 +937,15 @@ int main(int argc, char** argv)
             lasermap_fov_segment();
 
             /*** downsample the feature points in a scan ***/
-            downSizeFilterSurf.setInputCloud(feats_undistort);
-            downSizeFilterSurf.filter(*feats_down_body);
+            feats_down_body->clear();
+            for (int i = 0; i < feats_undistort->size(); i++)
+                if (i % p_pre->point_filter_num == 0)
+                    feats_down_body->points.push_back(feats_undistort->points[i]);
+            if (space_down_sample)
+            {
+                downSizeFilterSurf.setInputCloud(feats_down_body);
+                downSizeFilterSurf.filter(*feats_down_body);
+            }
             t1 = omp_get_wtime();
             feats_down_size = feats_down_body->points.size();
             /*** initialize the map kdtree ***/

@@ -160,8 +160,8 @@ void Preprocess::avia_handler(const livox_ros_driver::CustomMsg::ConstPtr &msg)
     {
       if((msg->points[i].line < N_SCANS) && ((msg->points[i].tag & 0x30) == 0x10 || (msg->points[i].tag & 0x30) == 0x00))
       {
-        valid_num ++;
-        if (valid_num % point_filter_num == 0)
+        // valid_num ++;
+        // if (valid_num % point_filter_num == 0)
         {
           pl_full[i].x = msg->points[i].x;
           pl_full[i].y = msg->points[i].y;
@@ -253,7 +253,7 @@ void Preprocess::oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
     // printf("Pt size = %d, N_SCANS = %d\r\n", plsize, N_SCANS);
     for (int i = 0; i < pl_orig.points.size(); i++)
     {
-      if (i % point_filter_num != 0) continue;
+      // if (i % point_filter_num != 0) continue;
 
       double range = pl_orig.points[i].x * pl_orig.points[i].x + pl_orig.points[i].y * pl_orig.points[i].y + pl_orig.points[i].z * pl_orig.points[i].z;
       
@@ -440,7 +440,7 @@ void Preprocess::velodyne_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
           time_last[layer]=added_pt.curvature;
         }
 
-        if (i % point_filter_num == 0)
+        // if (i % point_filter_num == 0)
         {
           if(added_pt.x*added_pt.x+added_pt.y*added_pt.y+added_pt.z*added_pt.z > (blind * blind))
           {
