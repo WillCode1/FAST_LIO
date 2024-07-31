@@ -63,7 +63,8 @@
 #define EVO
 #define PGO
 #ifdef PGO
-#include "slam_interfaces/BackendOpt.h"
+#include "backend_optimization/interface_ros1.h"
+#include "backend_optimization/pgo/Backend.hpp"
 #endif
 
 #define INIT_TIME           (0.1)
@@ -645,7 +646,7 @@ void state2pose(std::vector<float> &this_pose6d, const state_ikfom &state)
     V3D lidar_pos;
     poseTransformFrame(state.rot, state.pos, state.offset_R_L_I, state.offset_T_L_I, lidar_rot, lidar_pos);
 
-    Eigen::Vector3d eulerAngle = Quaternion2RPY(lidar_rot);
+    Eigen::Vector3d eulerAngle = EigenMath::Quaternion2RPY(lidar_rot);
     this_pose6d.emplace_back(lidar_pos(0)); // x
     this_pose6d.emplace_back(lidar_pos(1)); // y
     this_pose6d.emplace_back(lidar_pos(2)); // z
@@ -659,7 +660,7 @@ void pose2state(const std::vector<float> &this_pose6d, state_ikfom &state)
     // lidar pose -> imu pose
     V3D lidar_pos = V3D(this_pose6d[0], this_pose6d[1], this_pose6d[2]);
     V3D eulerAngle = V3D(this_pose6d[3], this_pose6d[4], this_pose6d[5]);
-    Eigen::Quaterniond lidar_rot = RPY2Quaternion(eulerAngle);
+    Eigen::Quaterniond lidar_rot = EigenMath::RPY2Quaternion(eulerAngle);
     poseTransformFrame2(lidar_rot, lidar_pos, state.offset_R_L_I, state.offset_T_L_I, state.rot, state.pos);
 }
 #endif
@@ -873,8 +874,7 @@ int main(int argc, char** argv)
     evo_tool et(DEBUG_FILE_DIR("pose_trajectory.txt"));
 #endif
 #ifdef PGO
-    ros::service::waitForService("/pgo_service");
-    ros::ServiceClient client = nh.serviceClient<slam_interfaces::BackendOpt>("/pgo_service");
+    init_pgo_system(nh);
 #endif
 
     /*** ROS subscribe initialization ***/
@@ -1030,17 +1030,17 @@ int main(int argc, char** argv)
 #endif
 
 #ifdef PGO
-            slam_interfaces::BackendOpt pgo_srv;
-            pcl::toROSMsg(*feats_undistort, pgo_srv.request.cloud_undistort);
-            state2pose(pgo_srv.request.pose, state_point);
-            pgo_srv.request.timestamp = lidar_end_time;
-            if (client.call(pgo_srv) && pgo_srv.response.submap_fix.width > 0)
-            {
-                pose2state(pgo_srv.response.pose_fix, state_point);
-                PointCloudXYZI::Ptr submap_fix(new PointCloudXYZI());
-                pcl::fromROSMsg(pgo_srv.response.submap_fix, *submap_fix);
-                ikdtree.reconstruct(submap_fix->points);
-            }
+            // slam_interfaces::BackendOpt pgo_srv;
+            // pcl::toROSMsg(*feats_undistort, pgo_srv.request.cloud_undistort);
+            // state2pose(pgo_srv.request.pose, state_point);
+            // pgo_srv.request.timestamp = lidar_end_time;
+            // if (client.call(pgo_srv) && pgo_srv.response.submap_fix.width > 0)
+            // {
+            //     pose2state(pgo_srv.response.pose_fix, state_point);
+            //     PointCloudXYZI::Ptr submap_fix(new PointCloudXYZI());
+            //     pcl::fromROSMsg(pgo_srv.response.submap_fix, *submap_fix);
+            //     ikdtree.reconstruct(submap_fix->points);
+            // }
 #endif
 
             /*** Debug variables ***/
