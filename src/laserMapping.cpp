@@ -1038,6 +1038,7 @@ int main(int argc, char** argv)
             if (submap_fix->size() > 0)
             {
                 pose2state(this_pose6d, state_point);
+                kf.change_x(state_point);
                 ikdtree.reconstruct(submap_fix->points);
             }
 #endif
