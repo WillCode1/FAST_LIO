@@ -102,6 +102,7 @@ catkin_package(
 
 add_executable(fastlio_mapping src/laserMapping.cpp include/ikd-Tree/ikd_Tree.cpp src/preprocess.cpp
   include/backend_optimization/global_localization/scancontext/Scancontext.cpp
+  include/backend_optimization/global_localization/InitCoordinate.cpp
   include/backend_optimization/interface_ros1.cpp)
 target_link_libraries(fastlio_mapping ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES} stdc++fs ${Boost_LIBRARIES} gtsam)
 target_include_directories(fastlio_mapping PRIVATE ${PYTHON_INCLUDE_DIRS})
