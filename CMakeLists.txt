@@ -66,12 +66,18 @@ find_package(catkin REQUIRED COMPONENTS
   eigen_conversions
 )
 
+set(BUILD_PANGOLIN OFF)
+if (BUILD_PANGOLIN)
+  add_definitions(-DUSE_PANGOLIN)
+  find_package(Pangolin REQUIRED)
+  include_directories(${Pangolin_INCLUDE_DIRS})
+endif()
+
 find_package(Eigen3 REQUIRED)
 find_package(PCL 1.8 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS serialization timer thread chrono)
 find_package(GTSAM REQUIRED)
 find_package(OpenCV REQUIRED)
-find_package(Pangolin REQUIRED)
 
 message(Eigen: ${EIGEN3_INCLUDE_DIR})
 
@@ -83,7 +89,6 @@ include_directories(
   ${GTSAM_INCLUDE_DIR}
   ${OpenCV_INCLUDE_DIRS}
   ${PYTHON_INCLUDE_DIRS}
-  ${Pangolin_INCLUDE_DIRS}
   include)
 
 add_message_files(
@@ -106,5 +111,8 @@ add_executable(fastlio_mapping src/laserMapping.cpp include/ikd-Tree/ikd_Tree.cp
   include/backend_optimization/global_localization/scancontext/Scancontext.cpp
   include/backend_optimization/global_localization/InitCoordinate.cpp
   include/backend_optimization/interface_ros1.cpp)
-target_link_libraries(fastlio_mapping ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES} stdc++fs ${Boost_LIBRARIES} gtsam ${Pangolin_LIBRARIES})
+target_link_libraries(fastlio_mapping ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES} stdc++fs ${Boost_LIBRARIES} gtsam)
+if (BUILD_PANGOLIN)
+  target_link_libraries(fastlio_mapping ${Pangolin_LIBRARIES})
+endif()
 target_include_directories(fastlio_mapping PRIVATE ${PYTHON_INCLUDE_DIRS})
